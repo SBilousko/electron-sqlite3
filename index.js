@@ -52,6 +52,17 @@ function createWindow() {
 
         console.log("params: ", params.name);
     });
+
+    ipcMain.on("clearDB", (event) => {
+        try {
+            let result = knex('files').truncate()
+            result.then(function () {
+                mainWindow.webContents.send("deleteResult");
+            })
+        } catch (error) {
+            console.log(error)
+        }
+    })
 }
 
 app.whenReady().then(() => {
