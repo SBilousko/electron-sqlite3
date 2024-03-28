@@ -1,8 +1,23 @@
 const electron = require("electron");
 const ipc = electron.ipcRenderer;
 
+function createElementWithAttrs(el, id = "", _class = "") {
+    element = document.createElement(el);
+    if (id) {
+        element.setAttribute("id", id);
+    }
+    if (_class) {
+        element.setAttribute("class", _class);
+    }
+    return element;
+}
+
 function createListItem(parent, child) {
-    let li = document.createElement("li");
+    let li = createElementWithAttrs(
+        "li",
+        (id = ""),
+        (_class = "list-group-item")
+    );
     li.innerHTML = child;
     parent.appendChild(li);
 }
@@ -10,6 +25,10 @@ function createListItem(parent, child) {
 function splitString(stringToSplit, separator) {
     return (arrayOfStrings = stringToSplit.split(separator));
 }
+
+const submitButton = document.getElementById("submitBtn");
+const deleteFilesButton = document.getElementById("deleteFiles");
+const filesList = document.getElementById("filesList");
 
 document.addEventListener("DOMContentLoaded", function () {
     ipc.send("mainWindowLoaded");
@@ -20,8 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
-
-const submitButton = document.getElementById("submitBtn");
 
 submitButton.addEventListener("click", () => {
     const filePathInput = document.getElementById("filePathInput");
@@ -34,28 +51,42 @@ submitButton.addEventListener("click", () => {
             name: fileName,
             path: filePath,
         };
-        console.log(params);
         ipc.send("setParams", params);
-        ipc.on("insResultSent", function (evt, result) {
-            let ul = document.getElementById("files")
-            console.log('ul', ul)
-            createListItem(ul, result[0].name);
-            filePathInput.value = "";
-        });
     } else {
         console.log("Empty Input Field");
     }
 });
 
-const deleteFilesButton = document.getElementById('deleteFiles')
-
-deleteFilesButton.addEventListener('click', () => {
+deleteFilesButton.addEventListener("click", () => {
     ipc.send("clearDB");
-    ipc.on('deleteResult', function (event) {
-        let filesList = document.getElementById("filesList");
-        let span = document.createElement('span')
-        span.innerHTML = "Files Deleted!"
-        span.setAttribute('id', 'deletedFilesMsg')
-        filesList.appendChild(span)
-    })
-})
+});
+
+ipc.on("insResultSent", function (evt, result) {
+    let span = document.getElementById("deleteFilesMsg");
+    if (span) {
+        span.remove();
+        let ul = createElementWithAttrs(
+            "ul",
+            (id = "files"),
+            (_class = "list-group ps-0 mt-2")
+        );
+        filesList.appendChild(ul);
+    }
+    let ul = document.getElementById("files");
+    createListItem(ul, result[0].name);
+    filePathInput.value = "";
+});
+
+ipc.on("deleteResult", function (event) {
+    let ul = document.getElementById("files");
+    if (ul) {
+        ul.remove();
+    }
+    let span = createElementWithAttrs(
+        "span",
+        (id = "deleteFilesMsg"),
+        (_class = "badge bg-info text-dark w-100 mt-2 py-3")
+    );
+    span.innerHTML = "Files Deleted!";
+    filesList.appendChild(span);
+});

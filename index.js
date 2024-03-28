@@ -55,14 +55,14 @@ function createWindow() {
 
     ipcMain.on("clearDB", (event) => {
         try {
-            let result = knex('files').truncate()
+            let result = knex("files").truncate();
             result.then(function () {
                 mainWindow.webContents.send("deleteResult");
-            })
+            });
         } catch (error) {
-            console.log(error)
+            console.log(error);
         }
-    })
+    });
 }
 
 app.whenReady().then(() => {
