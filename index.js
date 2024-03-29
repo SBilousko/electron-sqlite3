@@ -21,10 +21,12 @@ function createWindow() {
         },
     });
 
-    mainWindow.loadURL(`file://${__dirname}/main.html`);
+    mainWindow.loadFile("main.html");
     mainWindow.once("ready-to-show", () => {
         mainWindow.show();
     });
+
+    remoteMain.enable(mainWindow.webContents);
 
     ipcMain.on("mainWindowLoaded", function () {
         let result = knex.select("name").from("files");

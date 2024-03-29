@@ -1,4 +1,5 @@
 const electron = require("electron");
+const { BrowserWindow } = require("electron/main");
 const ipc = electron.ipcRenderer;
 
 function createElementWithAttrs(el, id = "", _class = "") {
@@ -29,6 +30,8 @@ function splitString(stringToSplit, separator) {
 const submitButton = document.getElementById("submitBtn");
 const deleteFilesButton = document.getElementById("deleteFiles");
 const filesList = document.getElementById("filesList");
+const openFileButton = document.getElementById("openFile");
+const fileInput = document.getElementById("filePathInput");
 
 document.addEventListener("DOMContentLoaded", function () {
     ipc.send("mainWindowLoaded");
@@ -40,21 +43,24 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-submitButton.addEventListener("click", () => {
-    const filePathInput = document.getElementById("filePathInput");
-    const filePath = filePathInput.value;
-    let fileName = splitString(filePath, "\\").find(
-        (element) => element.indexOf(".") != -1
-    );
+fileInput.addEventListener("change", function () {
+    const filePath = this.files[0].path;
     if (filePath != "") {
-        const params = {
+        const filePathArray = splitString(filePath, "\\");
+        const fileName = filePathArray[filePathArray.length - 1];
+
+        params = {
             name: fileName,
             path: filePath,
         };
-        ipc.send("setParams", params);
+        console.log("params: ", params);
     } else {
         console.log("Empty Input Field");
     }
+});
+
+submitButton.addEventListener("click", (e) => {
+    ipc.send("setParams", params);
 });
 
 deleteFilesButton.addEventListener("click", () => {
