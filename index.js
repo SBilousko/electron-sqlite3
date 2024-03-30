@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
+const fs = require("node:fs");
 const path = require("node:path");
+
+const TEMP_FOLDER_PATH = path.join(__dirname, "temp");
 
 var knex = require("knex")({
     client: "sqlite3",
@@ -26,8 +29,6 @@ function createWindow() {
         mainWindow.show();
     });
 
-    remoteMain.enable(mainWindow.webContents);
-
     ipcMain.on("mainWindowLoaded", function () {
         let result = knex.select("name").from("files");
         result.then(function (rows) {
@@ -37,9 +38,11 @@ function createWindow() {
 
     ipcMain.on("setParams", (event, params) => {
         try {
+            let temp_path = path.join(TEMP_FOLDER_PATH, params.name);
             let result = knex("files").insert({
                 name: params.name,
                 path: params.path,
+                temp_path: temp_path,
             });
             result.then(function (row) {
                 console.log("rows: ", row[0]);
@@ -48,11 +51,13 @@ function createWindow() {
                     mainWindow.webContents.send("insResultSent", row);
                 });
             });
+            console.log("params: ", temp_path);
+            fs.cp(params.path, temp_path, (err) => {
+                if (err) throw err;
+            });
         } catch (error) {
             console.log(error);
         }
-
-        console.log("params: ", params.name);
     });
 
     ipcMain.on("clearDB", (event) => {
@@ -60,6 +65,17 @@ function createWindow() {
             let result = knex("files").truncate();
             result.then(function () {
                 mainWindow.webContents.send("deleteResult");
+            });
+            const directory = "test";
+
+            fs.readdir(TEMP_FOLDER_PATH, (err, files) => {
+                if (err) throw err;
+
+                for (const file of files) {
+                    fs.unlink(path.join(TEMP_FOLDER_PATH, file), (err) => {
+                        if (err) throw err;
+                    });
+                }
             });
         } catch (error) {
             console.log(error);
