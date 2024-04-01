@@ -45,19 +45,30 @@ function createWindow() {
                 temp_path: temp_path,
             });
             result.then(function (row) {
-                console.log("rows: ", row[0]);
                 let insertedFileName = knex("files").where("id", row[0]);
                 insertedFileName.then(function (row) {
                     mainWindow.webContents.send("insResultSent", row);
                 });
             });
-            console.log("params: ", temp_path);
             fs.cp(params.path, temp_path, (err) => {
                 if (err) throw err;
             });
         } catch (error) {
             console.log(error);
         }
+    });
+
+    ipcMain.on("getFileContent", (event, fileName) => {
+        console.log(fileName);
+        let filePath = path.join(TEMP_FOLDER_PATH, fileName);
+        console.log(filePath);
+        let fc = fs.readFile(filePath, "utf-8", (err, data) => {
+            if (err) throw err;
+            mainWindow.webContents.send("fileContent", data);
+        });
+        // fc.then((fileContent) => {
+        //     mainWindow.webContents.send("File Content", fileContent);
+        // });
     });
 
     ipcMain.on("clearDB", (event) => {

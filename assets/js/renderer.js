@@ -13,14 +13,15 @@ function createElementWithAttrs(el, id = "", _class = "") {
     return element;
 }
 
-function createListItem(parent, child) {
-    let li = createElementWithAttrs(
-        "li",
+function createListItem(itemType = "li", parent, child) {
+    let elem = createElementWithAttrs(
+        itemType,
         (id = ""),
-        (_class = "list-group-item")
+        (_class = "list-group-item list-group-item-action")
     );
-    li.innerHTML = child;
-    parent.appendChild(li);
+    if (itemType == "a") elem.setAttribute("href", "#");
+    elem.innerHTML = child;
+    parent.appendChild(elem);
 }
 
 function splitString(stringToSplit, separator) {
@@ -29,21 +30,21 @@ function splitString(stringToSplit, separator) {
 
 const submitButton = document.getElementById("submitBtn");
 const deleteFilesButton = document.getElementById("deleteFiles");
+const filesListContainer = document.getElementById("filesListContainer");
+const filePathInput = document.getElementById("filePathInput");
 const filesList = document.getElementById("filesList");
-const openFileButton = document.getElementById("openFile");
-const fileInput = document.getElementById("filePathInput");
+const fileContent = document.getElementById("fileContent");
 
 document.addEventListener("DOMContentLoaded", function () {
     ipc.send("mainWindowLoaded");
-    let ul = document.getElementById("files");
-    ipc.on("resultSent", function (evt, result) {
+    ipc.on("resultSent", function (event, result) {
         for (let i = 0; i < result.length; i++) {
-            createListItem(ul, result[i].name);
+            createListItem("a", filesList, result[i].name);
         }
     });
 });
 
-fileInput.addEventListener("change", function () {
+filePathInput.addEventListener("change", function (event) {
     const filePath = this.files[0].path;
     if (filePath != "") {
         const filePathArray = splitString(filePath, "\\");
@@ -59,40 +60,50 @@ fileInput.addEventListener("change", function () {
     }
 });
 
-submitButton.addEventListener("click", (e) => {
+submitButton.addEventListener("click", (event) => {
     ipc.send("setParams", params);
 });
 
-deleteFilesButton.addEventListener("click", () => {
+deleteFilesButton.addEventListener("click", (evnt) => {
     ipc.send("clearDB");
 });
 
-ipc.on("insResultSent", function (evt, result) {
-    let span = document.getElementById("deleteFilesMsg");
-    if (span) {
-        span.remove();
-        let ul = createElementWithAttrs(
-            "ul",
-            (id = "files"),
+filesList.addEventListener("click", (event) => {
+    let fileName = event.target.text;
+    ipc.send("getFileContent", fileName);
+});
+
+ipc.on("insResultSent", function (event, result) {
+    let messageContainer = document.getElementById("deleteFilesMsg");
+    if (messageContainer) {
+        messageContainer.remove();
+        let filesList = createElementWithAttrs(
+            "div",
+            (id = "filesList"),
             (_class = "list-group ps-0 mt-2")
         );
-        filesList.appendChild(ul);
+        filesListContainer.appendChild(filesList);
     }
-    let ul = document.getElementById("files");
-    createListItem(ul, result[0].name);
+    let filesList = document.getElementById("filesList");
+    createListItem("a", filesList, result[0].name);
     filePathInput.value = "";
 });
 
+ipc.on("fileContent", function (event, data) {
+    console.log("data: ", data);
+    fileContent.innerHTML = data;
+});
+
 ipc.on("deleteResult", function (event) {
-    let ul = document.getElementById("files");
-    if (ul) {
-        ul.remove();
+    let filesList = document.getElementById("filesList");
+    if (filesList) {
+        filesList.remove();
     }
-    let span = createElementWithAttrs(
+    let messageContainer = createElementWithAttrs(
         "span",
         (id = "deleteFilesMsg"),
         (_class = "badge bg-info text-dark w-100 mt-2 py-3")
     );
-    span.innerHTML = "Files Deleted!";
-    filesList.appendChild(span);
+    messageContainer.innerHTML = "Files Deleted!";
+    filesListContainer.appendChild(messageContainer);
 });
